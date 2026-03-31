@@ -8,6 +8,7 @@ Each student build their own project:
 - Go from idea to a deployed product.
 - Use agents and LLMs throughout.
 
+----
 
 #### Task 1 (graded by TA after the lab).
 Pen and paper quiz.
@@ -74,7 +75,7 @@ Submit presentation with five slides:
     - The GitHub repo with the product code
     - Deployed product
 
-
+----
 
 #### Publishing the product code on GitHub
 
