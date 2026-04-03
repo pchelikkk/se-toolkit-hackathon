@@ -1,11 +1,11 @@
 # Lab 9 - Quiz and Hackathon
 
-Lab opens with a quiz and then kicks off the hackathon.
+The lab opens with a quiz and then kicks off the hackathon.
 
 To get the full point for the lab, you need to:
 
 - Pass Tasks 1, 2, 3 during the lab AND
-- Finish Task 4 and 5 by the usual deadline of Thursday 23:59.
+- Finish Tasks 4 and 5 by the usual deadline of Thursday 23:59.
 
 Each student builds their own project:
 
@@ -47,17 +47,17 @@ When the idea is approved, produce a plan for two product versions.
 
 Version 1 does one core thing well:
 
-- Pick one feature most valuable to the end-user and relatively easy to implement;
+- Pick the one feature most valuable to the end-user and relatively easy to implement;
 - It is a functioning product, not a prototype;
-- Needs to be shown to the TA upon completion for feedback.
+- Must be shown to the TA upon completion for feedback.
 
 Version 2 builds upon Version 1:
 
-- improves the initial feature, or adds another one on top;
-- address TA feedback from the lab;
-- deploy and make it available to use.
+- Improves the initial feature or adds another one on top;
+- Address TA feedback from the lab;
+- Deploy and make it available for use.
 
-The product must have these components each fulfilling a useful function:
+The product must have the following components, each fulfilling a useful function:
 
 - backend;
 - database;
@@ -66,7 +66,7 @@ The product must have these components each fulfilling a useful function:
 Note:
 
 - You can use the setup from Lab 8 or start from scratch.
-- `Telegram` bots are being blocked on university VMs.
+- `Telegram` bots are blocked on university VMs.
 
 ## Task 3 (approved by TA during the lab)
 
@@ -85,17 +85,17 @@ Implement and deploy Version 2 outlined in the plan:
 
 - Build and polish functionality;
 - Take TA feedback into account;
-- Push all code to the github repo (see the detailed instructions below);
+- Push all code to the GitHub repo (see the detailed instructions below);
 - Follow best practices and git workflow;
 - Document your solution;
 - Dockerize all services;
 - Deploy it to be accessible to use.
 
-Version 2 can be done during the lab or after the lab before the usual deadline.
+Version 2 can be completed during the lab or after it, before the usual deadline.
 
-## Task 5 (demo and pdf submitted through moodle)
+## Task 5 (demo and PDF submitted through Moodle)
 
-Submit presentation with five slides:
+Submit a presentation with five slides:
 
 1. Title:
 
@@ -107,7 +107,7 @@ Submit presentation with five slides:
 1. Context:
 
 - End-user of the product
-- Which problem your product solves
+- What problem your product solves
 - The product idea in one short sentence
 
 1. Implementation:
@@ -156,7 +156,7 @@ Submit presentation with five slides:
 
   - Features:
 
-    - Implemented and not not yet implemented features
+    - Implemented and not yet implemented features
 
   - Usage:
 
