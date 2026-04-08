@@ -345,7 +345,7 @@ function translateSummary(lang, summary) {
 }
 
 export default function App() {
-  const [lang, setLang] = useState(localStorage.getItem("bb_lang") || "ru");
+  const [lang, setLang] = useState(localStorage.getItem("bb_lang") || "en");
   const t = translations[lang];
 
   const [token, setToken] = useState(localStorage.getItem("bb_token") || "");
@@ -375,6 +375,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("bb_lang", lang);
   }, [lang]);
+
+  const toggleLang = () => {
+    setLang((prev) => (prev === "en" ? "ru" : "en"));
+  };
 
   useEffect(() => {
     localStorage.setItem("bb_token", token || "");
@@ -858,9 +862,14 @@ export default function App() {
     return (
       <div className="auth-page">
         <div className="auth-topbar">
-          <button className="lang-toggle" onClick={() => setLang(lang === "ru" ? "en" : "ru")}>
-            {lang === "ru" ? "EN" : "RU"}
-          </button>
+          <div className="lang-switch">
+            <span className={lang === "en" ? "lang-label active" : "lang-label"}>🇬🇧 EN</span>
+            <label className="switch">
+              <input type="checkbox" checked={lang === "ru"} onChange={toggleLang} />
+              <span className="switch-slider"></span>
+            </label>
+            <span className={lang === "ru" ? "lang-label active" : "lang-label"}>🇷🇺 RU</span>
+          </div>
         </div>
         <div className="auth-card">
           <div className="auth-brand">
@@ -917,9 +926,14 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
-          <button className="lang-toggle" onClick={() => setLang(lang === "ru" ? "en" : "ru")}>
-            {lang === "ru" ? "EN" : "RU"}
-          </button>
+          <div className="lang-switch">
+            <span className={lang === "en" ? "lang-label active" : "lang-label"}>🇬🇧 EN</span>
+            <label className="switch">
+              <input type="checkbox" checked={lang === "ru"} onChange={toggleLang} />
+              <span className="switch-slider"></span>
+            </label>
+            <span className={lang === "ru" ? "lang-label active" : "lang-label"}>🇷🇺 RU</span>
+          </div>
           <button onClick={logout}>{t.logout}</button>
         </div>
       </div>
