@@ -1,0 +1,6 @@
+
+# local secrets
+backend/.env
+frontend/.env
+frontend/.env.production
+frontend/.env.development
