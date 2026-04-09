@@ -255,6 +255,42 @@ function parseResponse(response) {
   });
 }
 
+function getErrorMessage(data, fallback) {
+  if (!data) return fallback;
+
+  if (typeof data === "string") return data;
+
+  if (typeof data.detail === "string") return data.detail;
+
+  if (Array.isArray(data.detail)) {
+    return data.detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.msg && item?.loc) {
+          const where = Array.isArray(item.loc) ? item.loc.join(" -> ") : String(item.loc);
+          return `${where}: ${item.msg}`;
+        }
+        if (item?.msg) return item.msg;
+        return JSON.stringify(item);
+      })
+      .join("; ");
+  }
+
+  if (typeof data.detail === "object") {
+    try {
+      return JSON.stringify(data.detail);
+    } catch {
+      return fallback;
+    }
+  }
+
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return fallback;
+  }
+}
+
 function translateValue(lang, value, map) {
   if (lang === "ru") return value;
   return map[value] || value;
@@ -288,6 +324,18 @@ function translatePantryLabel(lang, name) {
   return lang === "ru" ? name : ingredientMap[name] || name;
 }
 
+function translateUnitLabel(lang, unitLabel) {
+  if (lang === "ru") return unitLabel;
+
+  const mapping = {
+    "₽/кг": "RUB/kg",
+    "₽/л": "RUB/L",
+    "₽/шт": "RUB/pc",
+  };
+
+  return mapping[unitLabel] || unitLabel;
+}
+
 function translateSummary(lang, summary) {
   if (lang === "ru" || !summary) return summary;
   return summary
@@ -296,8 +344,33 @@ function translateSummary(lang, summary) {
     .join(", ");
 }
 
+function formatAssistantReasoning(lang, reasoning) {
+  if (!reasoning) return reasoning;
+
+  let text = reasoning;
+
+  const replacements = [
+    {
+      source: "A personalized meal plan was generated based on your budget, selected meal mode, and preferences.",
+      ru: "Персональный план питания был сформирован с учётом вашего бюджета, выбранного режима и предпочтений.",
+      en: "A personalized meal plan was generated based on your budget, selected meal mode, and preferences.",
+    },
+    {
+      source: "The plan remains comfortably within budget based on the current recipe catalog and your selected preferences.",
+      ru: "План остаётся в рамках бюджета с учётом текущего каталога рецептов и выбранных предпочтений.",
+      en: "The plan remains comfortably within budget based on the current recipe catalog and your selected preferences.",
+    },
+  ];
+
+  for (const item of replacements) {
+    text = text.replaceAll(item.source, lang === "ru" ? item.ru : item.en);
+  }
+
+  return text.replace(/\s+/g, " ").trim();
+}
+
 export default function App() {
-  const [lang, setLang] = useState(localStorage.getItem("bb_lang") || "ru");
+  const [lang, setLang] = useState(localStorage.getItem("bb_lang") || "en");
   const t = translations[lang];
 
   const [token, setToken] = useState(localStorage.getItem("bb_token") || "");
@@ -327,6 +400,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("bb_lang", lang);
   }, [lang]);
+
+  const toggleLang = () => {
+    setLang((prev) => (prev === "en" ? "ru" : "en"));
+  };
 
   useEffect(() => {
     localStorage.setItem("bb_token", token || "");
@@ -433,7 +510,7 @@ export default function App() {
       });
 
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
 
       setToken(data.access_token);
       setCurrentUser(data.user);
@@ -559,7 +636,7 @@ export default function App() {
       });
 
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
       setResult(data);
       setActiveTab("main");
       await refreshPrivateData();
@@ -576,7 +653,7 @@ export default function App() {
     try {
       const response = await authedFetch(`/api/meal-plans/${mealPlanId}`);
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
       setResult(data);
       setActiveTab(targetTab);
     } catch (err) {
@@ -597,7 +674,7 @@ export default function App() {
         body: JSON.stringify({ is_favorite: !result.is_favorite }),
       });
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
       setResult((current) => ({ ...current, is_favorite: data.is_favorite }));
       await refreshPrivateData();
     } catch (err) {
@@ -616,7 +693,7 @@ export default function App() {
         method: "POST",
       });
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
       setResult(data);
       await refreshPrivateData();
     } catch (err) {
@@ -637,7 +714,7 @@ export default function App() {
         body: JSON.stringify({ batch_number: batchNumber }),
       });
       const data = await parseResponse(response);
-      if (!response.ok) throw new Error(data.detail || t.invalid);
+      if (!response.ok) throw new Error(getErrorMessage(data, t.invalid));
       setResult(data);
       await refreshPrivateData();
     } catch (err) {
@@ -677,7 +754,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          <p><strong>{t.commentAgent}:</strong> {result.reasoning || "—"}</p>
+          <p><strong>{t.commentAgent}:</strong> {formatAssistantReasoning(lang, result.reasoning) || "—"}</p>
           {result.user_note ? <p><strong>{t.commentUser}:</strong> {result.user_note}</p> : null}
         </div>
 
@@ -810,8 +887,10 @@ export default function App() {
     return (
       <div className="auth-page">
         <div className="auth-topbar">
-          <button className="lang-toggle" onClick={() => setLang(lang === "ru" ? "en" : "ru")}>
-            {lang === "ru" ? "EN" : "RU"}
+          <button type="button" className="lang-toggle-pill" onClick={toggleLang} aria-label="Toggle language">
+            <span className={lang === "en" ? "lang-pill-option active" : "lang-pill-option"}>EN</span>
+            <span className={lang === "ru" ? "lang-pill-option active" : "lang-pill-option"}>RU</span>
+            <span className={lang === "ru" ? "lang-pill-thumb right" : "lang-pill-thumb"}></span>
           </button>
         </div>
         <div className="auth-card">
@@ -869,8 +948,10 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
-          <button className="lang-toggle" onClick={() => setLang(lang === "ru" ? "en" : "ru")}>
-            {lang === "ru" ? "EN" : "RU"}
+          <button type="button" className="lang-toggle-pill" onClick={toggleLang} aria-label="Toggle language">
+            <span className={lang === "en" ? "lang-pill-option active" : "lang-pill-option"}>EN</span>
+            <span className={lang === "ru" ? "lang-pill-option active" : "lang-pill-option"}>RU</span>
+            <span className={lang === "ru" ? "lang-pill-thumb right" : "lang-pill-thumb"}></span>
           </button>
           <button onClick={logout}>{t.logout}</button>
         </div>
@@ -1026,7 +1107,7 @@ export default function App() {
                     <div className="price-grid">
                       {meta.price_catalog.map((item) => (
                         <label key={item.name}>
-                          {translatePantryLabel(lang, item.name)} ({item.unit_label})
+                          {translatePantryLabel(lang, item.name)} ({translateUnitLabel(lang, item.unit_label)})
                           <input
                             type="number"
                             min="0"

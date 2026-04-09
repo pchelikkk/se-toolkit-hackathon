@@ -14,6 +14,8 @@ OPENROUTER_ENABLE_REASONING = os.getenv("OPENROUTER_ENABLE_REASONING", "false").
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
+    timeout=35.0,
+    max_retries=0,
     default_headers={
         "HTTP-Referer": APP_SITE_URL,
         "X-OpenRouter-Title": APP_NAME,
@@ -104,7 +106,10 @@ async def generate_batch_plan_with_llm(
 - Используй ТОЛЬКО recipe_id, которые реально присутствуют в каталоге ниже.
 - Если точного блюда под пожелание пользователя нет даже среди внешних кандидатов, честно напиши это в reasoning и собери лучший допустимый план из доступных recipe_id.
 - План должен быть batch-friendly.
-- Для каждого дня выдай полный список recipe_ids на день.
+- Для каждого дня обязательно выдай полный список recipe_ids на день.
+- Количество элементов в каждом schedule[i].recipe_ids должно быть РОВНО равно числу блюд на день.
+- Каждый recipe_id в schedule обязан присутствовать в batches.
+- Не используй один и тот же recipe_id больше раз, чем позволяет поле portions у этого рецепта.
 - Если нужен салат, в каждом дне должен быть минимум один salad recipe.
 - Если пользователь НЕ vegetarian/vegan, не делай полностью plan без animal protein, если бюджет позволяет.
 - Если список pantry пуст, но в комментарии пользователя явно перечислены продукты, учитывай эти упоминания.

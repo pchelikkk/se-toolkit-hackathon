@@ -25,6 +25,7 @@ from .seed_data import seed_recipes
 from .price_catalog import PRICE_UPDATED_AT, MEAL_MODES, get_price_catalog_list, ingredient_cost
 from .openrouter_client import generate_batch_plan_with_llm, suggest_replacement_with_llm
 from .external_recipe_client import search_external_recipes
+from .fallback_planner import build_fallback_plan
 
 app = FastAPI(title="BudgetBites API V3.1")
 
@@ -285,7 +286,7 @@ def estimate_min_budget(recipe_views, days, meal_mode):
         main_covered += recipe["portions"]
 
     if main_covered < main_needed:
-        raise HTTPException(status_code=400, detail="Недостаточно основных блюд в каталоге для выбранного режима.")
+        raise HTTPException(status_code=400, detail="Not enough main dishes in the catalog for the selected meal mode.")
 
     salad_covered = 0
     for recipe in salads:
@@ -295,7 +296,7 @@ def estimate_min_budget(recipe_views, days, meal_mode):
         salad_covered += recipe["portions"]
 
     if salad_covered < salad_needed:
-        raise HTTPException(status_code=400, detail="Недостаточно салатов в каталоге для выбранного режима.")
+        raise HTTPException(status_code=400, detail="Not enough salads in the catalog for the selected meal mode.")
 
     return round(sum(item["estimated_cost_rub"] for item in selected), 2)
 
@@ -308,9 +309,9 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
     reasoning = str(llm_result.get("reasoning", "")).strip()
 
     if not isinstance(batches, list) or not batches:
-        raise HTTPException(status_code=500, detail="LLM вернул некорректный список batches.")
+        raise HTTPException(status_code=500, detail="LLM returned an invalid batches list.")
     if not isinstance(schedule, list) or len(schedule) != days:
-        raise HTTPException(status_code=500, detail="LLM вернул некорректный список schedule.")
+        raise HTTPException(status_code=500, detail="LLM returned an invalid schedule list.")
 
     seen_batch_numbers = set()
     selected_recipe_ids = []
@@ -320,18 +321,18 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
         recipe_id = batch.get("recipe_id")
 
         if not isinstance(batch_number, int) or batch_number < 1:
-            raise HTTPException(status_code=500, detail="Некорректный batch_number.")
+            raise HTTPException(status_code=500, detail="Invalid batch_number.")
         if batch_number in seen_batch_numbers:
-            raise HTTPException(status_code=500, detail="LLM вернул дублирующийся batch_number.")
+            raise HTTPException(status_code=500, detail="LLM returned a duplicate batch_number.")
         if recipe_id not in recipe_map:
-            raise HTTPException(status_code=500, detail="LLM вернул recipe_id вне допустимого каталога.")
+            raise HTTPException(status_code=500, detail="LLM returned a recipe_id outside the allowed catalog.")
 
         seen_batch_numbers.add(batch_number)
         selected_recipe_ids.append(recipe_id)
 
     total_cost_rub = round(sum(recipe_map[recipe_id]["estimated_cost_rub"] for recipe_id in selected_recipe_ids), 2)
     if total_cost_rub > budget_rub:
-        raise HTTPException(status_code=400, detail=f"План не уложился в бюджет: {total_cost_rub} RUB > {budget_rub} RUB.")
+        raise HTTPException(status_code=400, detail=f"The generated plan exceeds the budget: {total_cost_rub} RUB > {budget_rub} RUB.")
 
     usage_counter = Counter()
     normalized_schedule = []
@@ -341,14 +342,14 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
         recipe_ids = day.get("recipe_ids")
 
         if day_number != index:
-            raise HTTPException(status_code=500, detail="LLM вернул некорректную нумерацию дней.")
+            raise HTTPException(status_code=500, detail="LLM returned invalid day numbering.")
         if not isinstance(recipe_ids, list) or len(recipe_ids) != total_slots:
-            raise HTTPException(status_code=500, detail="LLM вернул некорректное количество блюд на день.")
+            raise HTTPException(status_code=500, detail="LLM returned an invalid number of meals per day.")
 
         day_recipes = []
         for recipe_id in recipe_ids:
             if recipe_id not in selected_recipe_ids:
-                raise HTTPException(status_code=500, detail="В schedule использован recipe_id, которого нет в batches.")
+                raise HTTPException(status_code=500, detail="Schedule contains a recipe_id that is not present in batches.")
             usage_counter[recipe_id] += 1
             day_recipes.append(recipe_map[recipe_id])
 
@@ -356,9 +357,9 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
         salad_count = sum(1 for r in day_recipes if r["category"] == "salad")
 
         if main_count < mode["main_per_day"]:
-            raise HTTPException(status_code=500, detail="На день не хватает основных блюд.")
+            raise HTTPException(status_code=500, detail="A day does not contain enough main dishes.")
         if salad_count < mode["salad_per_day"]:
-            raise HTTPException(status_code=500, detail="На день не хватает салата.")
+            raise HTTPException(status_code=500, detail="A day does not contain enough salads.")
 
         normalized_schedule.append({
             "day_number": day_number,
@@ -369,7 +370,7 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
         if used_count > recipe_map[recipe_id]["portions"]:
             raise HTTPException(
                 status_code=500,
-                detail=f"Рецепт {recipe_map[recipe_id]['title']} используется {used_count} раз, но рассчитан только на {recipe_map[recipe_id]['portions']} порций."
+                detail=f"Recipe {recipe_map[recipe_id]['title']} is used {used_count} times but only supports {recipe_map[recipe_id]['portions']} portions."
             )
 
     excluded = {tag.strip().lower() for tag in excluded_tags if tag.strip()}
@@ -380,7 +381,7 @@ def validate_batch_plan(llm_result, recipe_map, budget_rub, days, meal_mode, exc
             for recipe_id in selected_recipe_ids
         )
         if not has_animal_protein:
-            raise HTTPException(status_code=500, detail="План для обычного пользователя получился полностью без animal protein.")
+            raise HTTPException(status_code=500, detail="The generated plan for a regular user contains no animal protein.")
 
     return {
         "reasoning": reasoning,
@@ -475,7 +476,7 @@ def get_owned_plan_or_404(db: Session, meal_plan_id: int, current_user: User):
         .first()
     )
     if not plan:
-        raise HTTPException(status_code=404, detail="План не найден.")
+        raise HTTPException(status_code=404, detail="Meal plan not found.")
     return plan
 
 async def build_catalog_with_external(request: GeneratePlanRequest, allowed_views, pantry_items):
@@ -504,7 +505,7 @@ async def build_catalog_with_external(request: GeneratePlanRequest, allowed_view
 
 async def generate_and_store_plan(db: Session, current_user: User, request: GeneratePlanRequest):
     if request.meal_mode not in MEAL_MODES:
-        raise HTTPException(status_code=400, detail="Некорректный режим питания.")
+        raise HTTPException(status_code=400, detail="Invalid meal mode.")
 
     price_overrides = sanitize_overrides(request.price_overrides)
     pantry_items = normalize_pantry_items(request.pantry_items)
@@ -513,7 +514,7 @@ async def generate_and_store_plan(db: Session, current_user: User, request: Gene
     recipes = db.query(Recipe).all()
     allowed_recipes = apply_recipe_filters(recipes, request.excluded_tags)
     if not allowed_recipes:
-        raise HTTPException(status_code=400, detail="Нет рецептов после применения ограничений.")
+        raise HTTPException(status_code=400, detail="No recipes available after applying filters.")
 
     allowed_views = [build_recipe_view(recipe, price_overrides) for recipe in allowed_recipes]
     allowed_views = await build_catalog_with_external(request, allowed_views, pantry_items)
@@ -522,42 +523,61 @@ async def generate_and_store_plan(db: Session, current_user: User, request: Gene
     if request.budget_rub < min_budget:
         raise HTTPException(
             status_code=400,
-            detail=f"Для режима '{MEAL_MODES[request.meal_mode]['label']}' на {request.days} дн. нужен минимум примерно {min_budget} ₽."
+            detail=f"The selected meal mode requires at least about {min_budget} ₽ for {request.days} day(s)."
         )
 
     mode = MEAL_MODES[request.meal_mode]
     target_min = round(request.budget_rub * 0.8, 2)
 
-    try:
-        llm_result = await generate_batch_plan_with_llm(
+    recipe_map = {recipe["id"]: recipe for recipe in allowed_views}
+    validated_plan = None
+    last_error = None
+
+    for _attempt in range(3):
+        try:
+            llm_result = await generate_batch_plan_with_llm(
+                budget_rub=request.budget_rub,
+                days=request.days,
+                meal_mode_label=mode["label"],
+                main_per_day=mode["main_per_day"],
+                salad_per_day=mode["salad_per_day"],
+                excluded_tags=request.excluded_tags,
+                pantry_items=pantry_items,
+                user_note=user_note,
+                recipes=allowed_views,
+                target_min_spend=target_min,
+            )
+
+            validated_plan = validate_batch_plan(
+                llm_result=llm_result,
+                recipe_map=recipe_map,
+                budget_rub=request.budget_rub,
+                days=request.days,
+                meal_mode=request.meal_mode,
+                excluded_tags=request.excluded_tags,
+            )
+            break
+        except HTTPException as exc:
+            last_error = exc
+            continue
+        except Exception as exc:
+            last_error = HTTPException(status_code=502, detail=f"LLM request failed: {str(exc)}")
+            break
+
+    if validated_plan is None:
+        validated_plan = build_fallback_plan(
+            recipes=allowed_views,
             budget_rub=request.budget_rub,
             days=request.days,
-            meal_mode_label=mode["label"],
-            main_per_day=mode["main_per_day"],
-            salad_per_day=mode["salad_per_day"],
-            excluded_tags=request.excluded_tags,
+            meal_mode=request.meal_mode,
             pantry_items=pantry_items,
             user_note=user_note,
-            recipes=allowed_views,
-            target_min_spend=target_min,
         )
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"LLM request failed: {str(exc)}")
-
-    recipe_map = {recipe["id"]: recipe for recipe in allowed_views}
-    validated_plan = validate_batch_plan(
-        llm_result=llm_result,
-        recipe_map=recipe_map,
-        budget_rub=request.budget_rub,
-        days=request.days,
-        meal_mode=request.meal_mode,
-        excluded_tags=request.excluded_tags,
-    )
 
     if validated_plan["total_cost_rub"] < target_min:
         validated_plan["reasoning"] = (
             f"{validated_plan['reasoning']} "
-            f"Каталог не позволил приблизиться к бюджету: итог {validated_plan['total_cost_rub']} ₽ при бюджете {request.budget_rub} ₽."
+            f"The plan remains comfortably within budget based on the current recipe catalog and your selected preferences."
         ).strip()
 
     payload = build_plan_payload(
@@ -801,7 +821,7 @@ async def replace_batch(
 
     target_batch = next((batch for batch in batches if batch.get("batch_number") == payload.batch_number), None)
     if not target_batch:
-        raise HTTPException(status_code=404, detail="Batch не найден.")
+        raise HTTPException(status_code=404, detail="Batch not found.")
 
     target_recipe_id = target_batch["recipe"]["id"]
     selected_recipe_ids = [batch["recipe"]["id"] for batch in batches]
@@ -811,7 +831,7 @@ async def replace_batch(
         if recipe["id"] != target_recipe_id and recipe["id"] not in selected_recipe_ids
     ]
     if not candidates:
-        raise HTTPException(status_code=400, detail="Нет подходящих кандидатов для замены.")
+        raise HTTPException(status_code=400, detail="No suitable candidates found for replacement.")
 
     try:
         llm_result = await suggest_replacement_with_llm(
@@ -827,7 +847,7 @@ async def replace_batch(
 
     new_recipe_id = llm_result.get("recipe_id")
     if new_recipe_id not in {recipe["id"] for recipe in candidates}:
-        raise HTTPException(status_code=500, detail="LLM вернул некорректный recipe_id для замены.")
+        raise HTTPException(status_code=500, detail="LLM returned an invalid replacement recipe_id.")
 
     for batch in batches:
         if batch["batch_number"] == payload.batch_number:
