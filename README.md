@@ -1,23 +1,16 @@
 # BudgetBites
 
-BudgetBites is Version 2 of a meal-planning web application for students with limited budgets.
+BudgetBites is a meal-planning web application for students with limited budgets.
 
 ## One-line description
 The user enters a budget, pantry items, and dietary preferences, and the system generates a practical multi-day meal plan.
 
 ## Demo
-
-### Home
-![Home](docs/screenshots/home.png)
-
-### History
-![History](docs/screenshots/history.png)
-
-### Favorites
-![Favorites](docs/screenshots/favorites.png)
-
-### Account
-![Account](docs/screenshots/account.png)
+Add screenshots here:
+- `docs/screenshots/home.png`
+- `docs/screenshots/history.png`
+- `docs/screenshots/favorites.png`
+- `docs/screenshots/account.png`
 
 ## Product context
 
@@ -34,12 +27,12 @@ BudgetBites generates practical batch-cooking meal plans based on budget, pantry
 - FastAPI backend
 - React frontend
 - SQLite database
-- Email and password authentication
+- User authentication (email + password)
 - Meal plan generation
 - Batch cooking plans
 - Pantry input
 - Missing ingredients list
-- Price confirmation and editing
+- Price confirmation/editing
 - History
 - Favorites
 - RU/EN interface
@@ -47,17 +40,17 @@ BudgetBites generates practical batch-cooking meal plans based on budget, pantry
 - Deployment-ready setup
 
 ## Not yet implemented / future work
-- More robust LLM fallback handling
-- More advanced recipe discovery
-- Better account settings
-- Extended analytics and personalization
+- Stronger fallback when LLM returns invalid JSON
+- Better external recipe search coverage
+- More advanced account settings
+- Better analytics and recommendations
 
 ## Usage
 1. Register or sign in
-2. Enter budget, number of days, meal mode, pantry items, and optional notes
+2. Enter budget, days, meal mode, pantry items, and optional notes
 3. Adjust reference prices if necessary
 4. Generate a meal plan
-5. Save the result to favorites or revisit it in history
+5. Save it to favorites or revisit it in history
 
 ## Local development
 
@@ -86,10 +79,9 @@ Ubuntu / Debian-based Linux VM
 ### Deploy steps
 1. Clone the repository
 2. Copy `backend/.env.example` to `backend/.env`
-3. Fill in the required backend environment variables
-4. Build and start containers with `docker compose up -d --build`
-5. Open the deployed application in the browser
+3. Fill in the required environment variables
+4. Run `docker compose up -d --build`
 
 ## Links
-- GitHub repository: https://github.com/pchelikkk/se-toolkit-hackathon
-- Deployed product: http://10.93.26.9
+- GitHub repository: add your repo link
+- Deployed product: add VM URL or public URL
