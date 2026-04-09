@@ -1,6 +1,25 @@
+# Python
+.venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# local secrets
+# Local secrets
 backend/.env
 frontend/.env
 frontend/.env.production
 frontend/.env.development
+
+# Databases
+*.db
+backend/budgetbites.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
