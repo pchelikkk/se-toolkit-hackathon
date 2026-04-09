@@ -14,6 +14,8 @@ OPENROUTER_ENABLE_REASONING = os.getenv("OPENROUTER_ENABLE_REASONING", "false").
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
+    timeout=35.0,
+    max_retries=0,
     default_headers={
         "HTTP-Referer": APP_SITE_URL,
         "X-OpenRouter-Title": APP_NAME,
