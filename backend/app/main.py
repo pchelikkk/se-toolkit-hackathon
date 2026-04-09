@@ -25,6 +25,7 @@ from .seed_data import seed_recipes
 from .price_catalog import PRICE_UPDATED_AT, MEAL_MODES, get_price_catalog_list, ingredient_cost
 from .openrouter_client import generate_batch_plan_with_llm, suggest_replacement_with_llm
 from .external_recipe_client import search_external_recipes
+from .fallback_planner import build_fallback_plan
 
 app = FastAPI(title="BudgetBites API V3.1")
 
@@ -564,7 +565,14 @@ async def generate_and_store_plan(db: Session, current_user: User, request: Gene
             break
 
     if validated_plan is None:
-        raise last_error or HTTPException(status_code=500, detail="Failed to generate a valid meal plan.")
+        validated_plan = build_fallback_plan(
+            recipes=allowed_views,
+            budget_rub=request.budget_rub,
+            days=request.days,
+            meal_mode=request.meal_mode,
+            pantry_items=pantry_items,
+            user_note=user_note,
+        )
 
     if validated_plan["total_cost_rub"] < target_min:
         validated_plan["reasoning"] = (
