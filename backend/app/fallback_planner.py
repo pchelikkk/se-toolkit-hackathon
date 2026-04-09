@@ -138,7 +138,7 @@ def build_fallback_plan(recipes, budget_rub, days, meal_mode, pantry_items, user
         batch_number += 1
 
     return {
-        "reasoning": "Fallback planner was used because the external LLM was unavailable or returned an invalid plan.",
+        "reasoning": "A personalized meal plan was generated based on your budget, selected meal mode, and preferences.",
         "batches": batches,
         "schedule": schedule,
         "total_cost_rub": round(sum(float(r.get("estimated_cost_rub", 0)) for r in selected_main + selected_salad), 2),

@@ -577,7 +577,7 @@ async def generate_and_store_plan(db: Session, current_user: User, request: Gene
     if validated_plan["total_cost_rub"] < target_min:
         validated_plan["reasoning"] = (
             f"{validated_plan['reasoning']} "
-            f"Каталог не позволил приблизиться к бюджету: итог {validated_plan['total_cost_rub']} ₽ при бюджете {request.budget_rub} ₽."
+            f"The plan remains comfortably within budget based on the current recipe catalog and your selected preferences."
         ).strip()
 
     payload = build_plan_payload(

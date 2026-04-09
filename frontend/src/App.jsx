@@ -344,6 +344,31 @@ function translateSummary(lang, summary) {
     .join(", ");
 }
 
+function formatAssistantReasoning(lang, reasoning) {
+  if (!reasoning) return reasoning;
+
+  let text = reasoning;
+
+  const replacements = [
+    {
+      source: "A personalized meal plan was generated based on your budget, selected meal mode, and preferences.",
+      ru: "Персональный план питания был сформирован с учётом вашего бюджета, выбранного режима и предпочтений.",
+      en: "A personalized meal plan was generated based on your budget, selected meal mode, and preferences.",
+    },
+    {
+      source: "The plan remains comfortably within budget based on the current recipe catalog and your selected preferences.",
+      ru: "План остаётся в рамках бюджета с учётом текущего каталога рецептов и выбранных предпочтений.",
+      en: "The plan remains comfortably within budget based on the current recipe catalog and your selected preferences.",
+    },
+  ];
+
+  for (const item of replacements) {
+    text = text.replaceAll(item.source, lang === "ru" ? item.ru : item.en);
+  }
+
+  return text.replace(/\s+/g, " ").trim();
+}
+
 export default function App() {
   const [lang, setLang] = useState(localStorage.getItem("bb_lang") || "en");
   const t = translations[lang];
@@ -729,7 +754,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          <p><strong>{t.commentAgent}:</strong> {result.reasoning || "—"}</p>
+          <p><strong>{t.commentAgent}:</strong> {formatAssistantReasoning(lang, result.reasoning) || "—"}</p>
           {result.user_note ? <p><strong>{t.commentUser}:</strong> {result.user_note}</p> : null}
         </div>
 
