@@ -1,6 +1,6 @@
 # BudgetBites
 
-BudgetBites is a meal-planning web application for students with limited budgets.
+BudgetBites is Version 2 of a meal-planning web application for students with limited budgets.
 
 ## One-line description
 The user enters a budget, pantry items, and dietary preferences, and the system generates a practical multi-day meal plan.
@@ -86,9 +86,9 @@ Ubuntu / Debian-based Linux VM
 ### Deploy steps
 1. Clone the repository
 2. Copy `backend/.env.example` to `backend/.env`
-3. Fill in the required environment variables
-4. Set frontend production API base if needed
-5. Run `docker compose up -d --build`
+3. Fill in the required backend environment variables
+4. Build and start containers with `docker compose up -d --build`
+5. Open the deployed application in the browser
 
 ## Links
 - GitHub repository: https://github.com/pchelikkk/se-toolkit-hackathon
